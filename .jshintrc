@@ -69,6 +69,7 @@
     "it": false,
     "describe": false,
     "before": false,
-    "after": false
+    "after": false,
+    "beforeEach": false
   }
 }
