@@ -1,0 +1,36 @@
+{
+  "name": "rabbitmq-retry",
+  "version": "1.0.0",
+  "description": "",
+  "author": "Lanetix <engineering@lanetix.com> (https://github.com/lanetix/)",
+  "keywords": [
+    "rabbit",
+    "message",
+    "queue",
+    "retry"
+  ],
+  "homepage": "https://github.com/lanetix/node-rabbitmq-rety/",
+  "bugs": "https://github.com/lanetix/node-rabbitmq-rety/issues",
+  "repository": "git://github.com/lanetix/node-rabbitmq-rety.git",
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://www.opensource.org/licenses/mit-license.php"
+    }
+  ],
+  "main": "./lib/index.js",
+  "scripts": {
+    "test": "./bin/lint && ./bin/test",
+    "lint": "./bin/lint"
+  },
+  "dependencies": {
+    "amqplib": "^0.2",
+    "bluebird": "^2",
+    "underscore": "^1"
+  },
+  "devDependencies": {
+    "jshint": "^2",
+    "mocha": "^1",
+    "should": "^4"
+  }
+}
