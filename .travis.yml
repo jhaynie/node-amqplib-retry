@@ -7,7 +7,7 @@ deploy:
   provider: npm
   email: "engineering@lanetix.com"
   api_key:
-    secure: SX5upIXYonYJXYOA4O9rfkWHzW+55/rGTOtPItZqlEiuNuo5aFD+NRttYovKwX59+wdjLmtOfIkpeytfdGLQOhEnJQ6s4oV8m/xqHmLHycota6B8hoTE7Mkh239I+S/i962rGP88aJhszFTNaZk3NPArcS4jLi8D3IxOLFswuQk  api_key:
+    secure: SX5upIXYonYJXYOA4O9rfkWHzW+55/rGTOtPItZqlEiuNuo5aFD+NRttYovKwX59+wdjLmtOfIkpeytfdGLQOhEnJQ6s4oV8m/xqHmLHycota6B8hoTE7Mkh239I+S/i962rGP88aJhszFTNaZk3NPArcS4jLi8D3IxOLFswuQk=
   on:
     repo: lanetix/node-rabbitmq-retry
     branch: master
