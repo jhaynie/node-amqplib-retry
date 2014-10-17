@@ -1,5 +1,8 @@
 language: node_js
 node_js:
-  - "0.10"
+- '0.10'
 services:
-  - rabbitmq
+- rabbitmq
+deploy:
+  api_key:
+    secure: SX5upIXYonYJXYOA4O9rfkWHzW+55/rGTOtPItZqlEiuNuo5aFD+NRttYovKwX59+wdjLmtOfIkpeytfdGLQOhEnJQ6s4oV8m/xqHmLHycota6B8hoTE7Mkh239I+S/i962rGP88aJhszFTNaZk3NPArcS4jLi8D3IxOLFswuQk=
