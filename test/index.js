@@ -1,77 +1,53 @@
 (function () {
   'use strict';
 
-  var Retry = require('../lib/index'),
+  var _ = require('underscore'),
+    Retry = require('../lib/index'),
     should = require('should'),
     Promise = require('bluebird'),
     TEST_QUEUE_NAME = 'rabbitmq-retry-test',
     FAILURE_QUEUE_NAME = 'rabbitmq-retry-test-failure',
     amqp = require('amqplib'),
-    connection,
     channel;
 
-
-  function connect() {
-    if (!connection) {
-      connection = amqp.connect('amqp://guest:guest@localhost:5672');
-    }
-    return connection;
-  }
-
   describe('rabbitmq-retry tests', function () {
-    before(function (done) {
-      Promise.resolve()
-        .then(function () {
-          return connect();
-        })
+    before(function () {
+      return Promise.resolve(amqp.connect('amqp://guest:guest@localhost:5672'))
         .then(function (conn) {
           return conn.createChannel();
         })
         .then(function (ch) {
-          channel = ch;
-          return Promise.promisifyAll(channel);
+          channel = Promise.promisifyAll(ch);
+          return channel;
         })
         .then(function () {
           return Promise.all([
             channel.assertQueue(TEST_QUEUE_NAME, {durable: false, autoDelete: true}),
             channel.assertQueue(FAILURE_QUEUE_NAME, {durable: false, autoDelete: true})
           ]);
-        })
-        .then(function () {
-          done();
-        }, done);
+        });
     });
 
-    beforeEach(function (done) {
-      Promise.resolve()
-        .then(function () {
-          return Promise.all([
-            channel.purgeQueue(TEST_QUEUE_NAME),
-            channel.purgeQueue(FAILURE_QUEUE_NAME)
-          ]);
-        })
-        .then(function () {
-          done();
-        }, done);
+    beforeEach(function () {
+      return Promise.all([
+        channel.purgeQueue(TEST_QUEUE_NAME),
+        channel.purgeQueue(FAILURE_QUEUE_NAME)
+      ]);
     });
 
-    after(function (done) {
-      Promise.resolve()
-        .then(function () {
-          return Promise.all([
-            channel.deleteQueue(TEST_QUEUE_NAME),
-            channel.deleteQueue(FAILURE_QUEUE_NAME)
-          ]);
-        })
-        .then(function () {
-          done();
-        }, done);
+    after(function () {
+      return Promise.all([
+        channel.deleteQueue(TEST_QUEUE_NAME),
+        channel.deleteQueue(FAILURE_QUEUE_NAME)
+      ]);
     });
 
-    it('should test delay', function (done) {
-      Promise.resolve()
+    function testDelay(options) {
+      return Promise.resolve()
         .then(function () {
-          return new Retry({failureQueueName: FAILURE_QUEUE_NAME});
+          return new Retry(_.defaults({
+            failureQueueName: FAILURE_QUEUE_NAME
+          }, options || {}));
         })
         .tap(function (retry) {
           return retry.start();
@@ -98,12 +74,18 @@
         })
         .then(function (ok) {
           should(ok.messageCount).eql(1);
-          done();
-        }, done);
+        });
+    }
+
+    it('should test delay', function () {
+      return testDelay();
+    });
+    it('should test delay with given AMQPLIB connection', function () {
+      return testDelay({amqplibConnection: amqp.connect('amqp://guest:guest@localhost:5672')});
     });
 
-    it('should test failure', function (done) {
-      Promise.resolve()
+    it('should test failure', function () {
+      return Promise.resolve()
         .then(function () {
           return new Retry({
             failureQueueName: FAILURE_QUEUE_NAME,
@@ -130,15 +112,13 @@
         })
         .then(function (ok) {
           should(ok.messageCount).eql(1);
-          done();
-        }, done);
+        });
     });
 
-    it('should test not specified failure queue', function (done) {
+    it('should test not specified failure queue', function () {
       should(function () {
         return new Retry();
       }).throw(Error('\'failureQueueName\' not specified.  See documentation.'));
-      done();
     });
   });
 }());
