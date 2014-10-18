@@ -70,6 +70,7 @@
     "describe": false,
     "before": false,
     "after": false,
-    "beforeEach": false
+    "beforeEach": false,
+    "afterEach": false
   }
 }
