@@ -1,8 +1,7 @@
 (function () {
   'use strict';
 
-  var _ = require('underscore'),
-    Retry = require('../lib/index'),
+  var Retry = require('../lib/index'),
     should = require('should'),
     Promise = require('bluebird'),
     TEST_QUEUE_NAME = 'rabbitmq-retry-test',
