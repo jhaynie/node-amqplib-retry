@@ -1,12 +1,12 @@
 (function () {
   'use strict';
 
-  var _ = require('underscore'),
-    Retry = require('../lib/index'),
+  var Retry = require('../lib/index'),
     should = require('should'),
     Promise = require('bluebird'),
     TEST_QUEUE_NAME = 'rabbitmq-retry-test',
     FAILURE_QUEUE_NAME = 'rabbitmq-retry-test-failure',
+    CONSUMER_TAG = 'CONSUMER_TAG',
     amqp = require('amqplib'),
     channel;
 
@@ -17,90 +17,93 @@
           return conn.createChannel();
         })
         .then(function (ch) {
-          channel = Promise.promisifyAll(ch);
-          return channel;
+          Promise.promisifyAll(ch);
+          channel = ch;
+          return ch;
         })
-        .then(function () {
+        .tap(function (ch) {
           return Promise.all([
-            channel.assertQueue(TEST_QUEUE_NAME, {durable: false, autoDelete: true}),
-            channel.assertQueue(FAILURE_QUEUE_NAME, {durable: false, autoDelete: true})
+            ch.assertQueue(TEST_QUEUE_NAME, {durable: false}),
+            ch.assertQueue(FAILURE_QUEUE_NAME, {durable: false})
           ]);
         });
     });
 
     beforeEach(function () {
-      return Promise.all([
-        channel.purgeQueue(TEST_QUEUE_NAME),
-        channel.purgeQueue(FAILURE_QUEUE_NAME)
-      ]);
+      return Promise.resolve(channel)
+        .then(function (ch) {
+          return Promise.all([
+            ch.purgeQueue(TEST_QUEUE_NAME),
+            ch.purgeQueue(FAILURE_QUEUE_NAME)
+          ]);
+        });
+    });
+
+    afterEach(function () {
+      return Promise.resolve(channel)
+        .tap(function (ch) {
+          return ch.cancel(CONSUMER_TAG);
+        });
     });
 
     after(function () {
-      return Promise.all([
-        channel.deleteQueue(TEST_QUEUE_NAME),
-        channel.deleteQueue(FAILURE_QUEUE_NAME)
-      ]);
+      return Promise.resolve(channel)
+        .then(function (ch) {
+          return Promise.all([
+            ch.deleteQueue(TEST_QUEUE_NAME),
+            ch.deleteQueue(FAILURE_QUEUE_NAME)
+          ]);
+        });
     });
 
-    function testDelay(options) {
+    function startListenerAndPushMessage(handler, delayFunction) {
       return Promise.resolve()
         .then(function () {
-          return new Retry(_.defaults({
-            failureQueueName: FAILURE_QUEUE_NAME
-          }, options || {}));
-        })
-        .tap(function (retry) {
-          return retry.start();
-        })
-        .then(function (retry) {
-          return retry.retry(JSON.stringify({content: 'abc', properties: {expiration: '60000'}}), 'rabbitmq-retry-test');
+          var retry = new Retry(channel, TEST_QUEUE_NAME, FAILURE_QUEUE_NAME, handler, delayFunction);
+
+          return channel.consume(TEST_QUEUE_NAME, retry, {consumerTag: CONSUMER_TAG});
         })
         .then(function () {
-          return channel.checkQueue(TEST_QUEUE_NAME);
-        })
-        .then(function (ok) {
-          should(ok.messageCount).eql(0);
-        })
-        .delay(1000)
-        .then(function () {
-          return channel.checkQueue(TEST_QUEUE_NAME);
-        })
-        .then(function (ok) {
-          should(ok.messageCount).eql(0);
-        })
-        .delay(2000)
-        .then(function () {
-          return channel.checkQueue(TEST_QUEUE_NAME);
-        })
-        .then(function (ok) {
-          should(ok.messageCount).eql(1);
+          return channel.sendToQueue(TEST_QUEUE_NAME, new Buffer('abc'));
         });
     }
 
     it('should test delay', function () {
-      return testDelay();
-    });
-    it('should test delay with given AMQPLIB connection', function () {
-      return testDelay({amqplibConnection: amqp.connect('amqp://guest:guest@localhost:5672')});
+      var times = 0,
+        threw;
+
+      function handler(msg) {
+        times += 1;
+        if (!threw) {
+          threw = true;
+          throw Error('this is an error');
+        } else {
+          channel.ack(msg);
+        }
+      }
+
+      return startListenerAndPushMessage(handler)
+        .delay(1000)
+        .then(function () {
+          should(times).eql(1);
+        })
+        .delay(2000)
+        .then(function () {
+          should(times).eql(2);
+        });
     });
 
     it('should test failure', function () {
-      return Promise.resolve()
-        .then(function () {
-          return new Retry({
-            failureQueueName: FAILURE_QUEUE_NAME,
-            delayFunction: function () {
-              return -1;
-            }
-          });
-        })
-        .tap(function (retry) {
-          return retry.start();
-        })
-        .then(function (retry) {
-          return retry.retry(JSON.stringify({content: 'abc', properties: {expiration: '60000'}}), 'rabbitmq-retry-test');
-        })
-        .delay(1)
+      function handler() {
+        throw Error('this is an error');
+      }
+
+      function delayFunction() {
+        return -1;
+      }
+
+      return startListenerAndPushMessage(handler, delayFunction)
+        .delay(1000)
         .then(function () {
           return channel.checkQueue(TEST_QUEUE_NAME);
         })
