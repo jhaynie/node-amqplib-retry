@@ -59,7 +59,7 @@
     function startListenerAndPushMessage(handler, delayFunction) {
       return Promise.resolve()
         .then(function () {
-          var retry = new Retry(channel, TEST_QUEUE_NAME, FAILURE_QUEUE_NAME, delayFunction, handler);
+          var retry = new Retry(channel, TEST_QUEUE_NAME, FAILURE_QUEUE_NAME, handler, delayFunction);
 
           return channel.consume(TEST_QUEUE_NAME, retry, {consumerTag: CONSUMER_TAG});
         })

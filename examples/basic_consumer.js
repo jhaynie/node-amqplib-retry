@@ -24,14 +24,14 @@
       ]);
     })
     .then(function () {
-      /* Without retry:
-       channel.consume(QUEUE_NAME, function (msg) { console.log(msg); });
-       */
-      channel.consume(QUEUE_NAME, new Retry(channel, QUEUE_NAME, FAILURE_QUEUE_NAME, null, function (msg) {
+      var amqpHandler = function (msg) {
         // do some work...
         // no need to 'ack' or 'nack' anymore.
         console.log(msg);
-      }));
+      };
+
+      channel.consume(QUEUE_NAME, new Retry(channel, QUEUE_NAME, FAILURE_QUEUE_NAME, amqpHandler));
+
       console.log('Example consumer started.');
     });
 }());
