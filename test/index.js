@@ -11,6 +11,7 @@
     channel;
 
   describe('rabbitmq-retry tests', function () {
+
     before(function () {
       return Promise.resolve(amqp.connect('amqp://guest:guest@localhost:5672'))
         .then(function (conn) {
@@ -76,7 +77,7 @@
         times += 1;
         if (!threw) {
           threw = true;
-          throw Error('this is an error');
+          throw new Error('this is an error');
         } else {
           channel.ack(msg);
         }
@@ -95,7 +96,7 @@
 
     it('should test failure', function () {
       function handler() {
-        throw Error('this is an error');
+        throw new Error('this is an error');
       }
 
       function delayFunction() {
@@ -121,7 +122,10 @@
     it('should test not specified failure queue', function () {
       should(function () {
         return new Retry();
-      }).throw(Error('\'failureQueueName\' not specified.  See documentation.'));
+      }).throw(new Error('\'failureQueueName\' not specified.  See documentation.'));
     });
+
   });
+
 }());
+

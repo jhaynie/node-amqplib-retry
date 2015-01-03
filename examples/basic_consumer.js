@@ -8,7 +8,6 @@
     amqp = require('amqplib'),
     channel;
 
-
   Promise.resolve(amqp.connect('amqp://guest:guest@localhost:5672'))
     .then(function (conn) {
       return conn.createChannel();
@@ -34,4 +33,6 @@
 
       console.log('Example consumer started.');
     });
+
 }());
+
