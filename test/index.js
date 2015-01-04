@@ -10,19 +10,41 @@
     amqp = require('amqplib'),
     Retry = require('../lib/index'),
     config = require('../lib/config'),
-    TEST_QUEUE_NAME = 'rabbitmq-retry-test',
+    ENTRY_QUEUE_NAME = 'rabbitmq-retry-test',
+    DELAY_QUEUE_NAME = config.delayQueueName,
+    READY_QUEUE_NAME = config.readyQueueName,
     FAILURE_QUEUE_NAME = 'rabbitmq-retry-test-failure',
-    CONSUMER_TAG = 'CONSUMER_TAG';
-
-  function hardcodedDelay(delay) {
-    return function () {
-      return delay;
-    };
-  }
+    CONSUMER_TAG = 'rabbitmq-retry-tests';
 
   describe('rabbitmq-retry', function () {
 
     var channel;
+
+    function hardcodedDelay(delay) {
+      return function () {
+        return delay;
+      };
+    }
+
+    function checkQueues() {
+      return Promise.all([
+        channel.checkQueue(ENTRY_QUEUE_NAME),
+        channel.checkQueue(DELAY_QUEUE_NAME),
+        channel.checkQueue(READY_QUEUE_NAME),
+        channel.checkQueue(FAILURE_QUEUE_NAME)
+      ]);
+    }
+
+    function startListenerAndPushMessage(handler, delayFunction) {
+      return Promise.resolve()
+        .then(function () {
+          var retry = new Retry(channel, ENTRY_QUEUE_NAME, FAILURE_QUEUE_NAME, handler, delayFunction ||  hardcodedDelay(-1));
+          return channel.consume(ENTRY_QUEUE_NAME, retry, {consumerTag: CONSUMER_TAG});
+        })
+        .then(function () {
+          return channel.sendToQueue(ENTRY_QUEUE_NAME, new Buffer('abc'));
+        });
+    }
 
     before(function () {
       return Promise.resolve(amqp.connect('amqp://guest:guest@localhost:5672'))
@@ -36,7 +58,7 @@
         })
         .tap(function (ch) {
           return Promise.all([
-            ch.assertQueue(TEST_QUEUE_NAME, {durable: false}),
+            ch.assertQueue(ENTRY_QUEUE_NAME, {durable: false}),
             ch.assertQueue(FAILURE_QUEUE_NAME, {durable: false})
           ]);
         });
@@ -46,7 +68,7 @@
       return Promise.resolve(channel)
         .tap(function (ch) {
           return Promise.all([
-            ch.purgeQueue(TEST_QUEUE_NAME),
+            ch.purgeQueue(ENTRY_QUEUE_NAME),
             ch.purgeQueue(FAILURE_QUEUE_NAME)
           ]);
         });
@@ -56,9 +78,7 @@
       return Promise.resolve(channel)
         .tap(function (ch) {
           return Promise.all([
-            ch.cancel(CONSUMER_TAG),
-            ch.purgeQueue(config.delayQueueName),
-            ch.purgeQueue(config.readyQueueName)
+            ch.cancel(CONSUMER_TAG)
           ]);
         });
     });
@@ -67,57 +87,95 @@
       return Promise.resolve(channel)
         .tap(function (ch) {
           return Promise.all([
-            ch.deleteQueue(TEST_QUEUE_NAME),
+            ch.deleteQueue(ENTRY_QUEUE_NAME),
             ch.deleteQueue(FAILURE_QUEUE_NAME)
           ]);
         })
         .delay(500);
     });
 
-    function startListenerAndPushMessage(handler, delayFunction) {
-      return Promise.resolve()
-        .then(function () {
-          var retry = new Retry(channel, TEST_QUEUE_NAME, FAILURE_QUEUE_NAME, handler, delayFunction);
-          return channel.consume(TEST_QUEUE_NAME, retry, {consumerTag: CONSUMER_TAG});
-        })
-        .then(function () {
-          return channel.sendToQueue(TEST_QUEUE_NAME, new Buffer('abc'));
+    it('acks a successfully handled message', function () {
+      function success() {
+      }
+
+      return startListenerAndPushMessage(success)
+        .delay(200)
+        .then(checkQueues)
+        .spread(function (entry, delay, ready, failed) {
+          entry.messageCount.should.be.eql(0);
+          delay.messageCount.should.be.eql(0);
+          ready.messageCount.should.be.eql(0);
+          failed.messageCount.should.be.eql(0);
         });
-    }
+    });
 
-    it('should retry a failed message multiple times', function (done) {
-      var spy = sinon.spy(function () {
-        if (spy.callCount < 3) {
-          console.log(spy.callCount + ': error...');
-          throw new Error('example error');
-        }
-        console.log(spy.callCount + ': no error!');
-      });
+    it('acks a successfully handled message (delayed promise)', function () {
+      function delayedSuccess() {
+        return Promise.resolve()
+          .delay(250)
+          .then(function () {
+            return;
+          });
+      }
 
-      startListenerAndPushMessage(spy, hardcodedDelay(200));
-
-      setTimeout(function () {
-        spy.calledThrice.should.be.eql(true);
-        done();
-      }, 1000);
+      return startListenerAndPushMessage(delayedSuccess)
+        .delay(400)
+        .then(checkQueues)
+        .spread(function (entry, delay, ready, failed) {
+          entry.messageCount.should.be.eql(0);
+          delay.messageCount.should.be.eql(0);
+          ready.messageCount.should.be.eql(0);
+          failed.messageCount.should.be.eql(0);
+        });
     });
 
     it('a delay of -1 should send the message to the FAIL queue', function () {
-      function handler() {
-        throw new Error('this is an error');
+      function fail() {
+        throw new Error('example error');
       }
 
-      return startListenerAndPushMessage(handler, hardcodedDelay(-1))
+      return startListenerAndPushMessage(fail)
         .delay(200)
+        .then(checkQueues)
+        .spread(function (entry, delay, ready, failed) {
+          entry.messageCount.should.be.eql(0);
+          delay.messageCount.should.be.eql(0);
+          ready.messageCount.should.be.eql(0);
+          failed.messageCount.should.be.eql(1);
+        });
+    });
+
+    it('FAIL delivery works for delayed promise handlers', function () {
+      function delayedFail() {
+        return Promise.resolve()
+          .delay(200)
+          .then(function () {
+            throw new Error('example error');
+          });
+      }
+
+      return startListenerAndPushMessage(delayedFail)
+        .delay(500)
+        .then(checkQueues)
+        .spread(function (entry, delay, ready, failed) {
+          entry.messageCount.should.be.eql(0);
+          delay.messageCount.should.be.eql(0);
+          ready.messageCount.should.be.eql(0);
+          failed.messageCount.should.be.eql(1);
+        });
+    });
+
+    it('should retry a failed message multiple times', function () {
+      var spy = sinon.spy(function () {
+        if (spy.callCount < 3) {
+          throw new Error('example error');
+        }
+      });
+
+      return startListenerAndPushMessage(spy, hardcodedDelay(200))
+        .delay(1000) // enough time for at least four iterations
         .then(function () {
-          return Promise.all([
-            channel.checkQueue(TEST_QUEUE_NAME),
-            channel.checkQueue(FAILURE_QUEUE_NAME)
-          ]);
-        })
-        .then(function (ok) {
-          ok[0].messageCount.should.be.eql(0);
-          ok[1].messageCount.should.be.eql(1);
+          spy.calledThrice.should.be.eql(true);
         });
     });
 
