@@ -7,7 +7,7 @@ deploy:
   provider: npm
   email: engineering@lanetix.com
   api_key:
-    secure: h9n5TAuKn7N12i+JiRlG1qIx0aCmfZcFkWJ5dDor56JkF3xQbEFFqQdqYlMc37PzyhfQCGWNxnCI2B9WowqFAHrBRQYppZT1i7/+dtmtY8J9FIAIVBBbHT4dmml0I4ciDTv3pfnLiG542THkWO7i7tNnqR3vXx0IB9i0xa+Uhs4=
+    secure: UFa+1JCFzX+iMsARDFgZ9+y1qLaJt1Yn4kCLOyQ1XpH1sY2J7ClhxUra5qURmWwUIXWrI65DyZzyp1cgHo/FbWNv1adMsd0FjMIe+I5yq+6fdNVWXTtoVh/vdZcbr36lIZAW9gpXGaR41vBTd5bLxt1C6iM+Dlfvex2Nxy0aC8U=
   on:
     repo: lanetix/node-amqplib-retry
     branch: master
