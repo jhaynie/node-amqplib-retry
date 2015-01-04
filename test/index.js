@@ -1,16 +1,28 @@
+/*jslint indent: 2*/
+/*global require:true, describe:true, it:true, before:true, after:true, beforeEach:true, afterEach:true*/
 (function () {
   'use strict';
 
-  var Retry = require('../lib/index'),
-    should = require('should'),
-    Promise = require('bluebird'),
+  require('should');
+
+  var Promise = require('bluebird'),
+    sinon = require('sinon'),
+    amqp = require('amqplib'),
+    Retry = require('../lib/index'),
+    config = require('../lib/config'),
     TEST_QUEUE_NAME = 'rabbitmq-retry-test',
     FAILURE_QUEUE_NAME = 'rabbitmq-retry-test-failure',
-    CONSUMER_TAG = 'CONSUMER_TAG',
-    amqp = require('amqplib'),
-    channel;
+    CONSUMER_TAG = 'CONSUMER_TAG';
 
-  describe('rabbitmq-retry tests', function () {
+  function hardcodedDelay(delay) {
+    return function () {
+      return delay;
+    };
+  }
+
+  describe('rabbitmq-retry', function () {
+
+    var channel;
 
     before(function () {
       return Promise.resolve(amqp.connect('amqp://guest:guest@localhost:5672'))
@@ -32,7 +44,7 @@
 
     beforeEach(function () {
       return Promise.resolve(channel)
-        .then(function (ch) {
+        .tap(function (ch) {
           return Promise.all([
             ch.purgeQueue(TEST_QUEUE_NAME),
             ch.purgeQueue(FAILURE_QUEUE_NAME)
@@ -43,25 +55,29 @@
     afterEach(function () {
       return Promise.resolve(channel)
         .tap(function (ch) {
-          return ch.cancel(CONSUMER_TAG);
+          return Promise.all([
+            ch.cancel(CONSUMER_TAG),
+            ch.purgeQueue(config.delayQueueName),
+            ch.purgeQueue(config.readyQueueName)
+          ]);
         });
     });
 
     after(function () {
       return Promise.resolve(channel)
-        .then(function (ch) {
+        .tap(function (ch) {
           return Promise.all([
             ch.deleteQueue(TEST_QUEUE_NAME),
             ch.deleteQueue(FAILURE_QUEUE_NAME)
           ]);
-        });
+        })
+        .delay(500);
     });
 
     function startListenerAndPushMessage(handler, delayFunction) {
       return Promise.resolve()
         .then(function () {
           var retry = new Retry(channel, TEST_QUEUE_NAME, FAILURE_QUEUE_NAME, handler, delayFunction);
-
           return channel.consume(TEST_QUEUE_NAME, retry, {consumerTag: CONSUMER_TAG});
         })
         .then(function () {
@@ -69,60 +85,48 @@
         });
     }
 
-    it('should test delay', function () {
-      var times = 0,
-        threw;
-
-      function handler(msg) {
-        times += 1;
-        if (!threw) {
-          threw = true;
-          throw new Error('this is an error');
-        } else {
-          channel.ack(msg);
+    it('should retry a failed message multiple times', function (done) {
+      var spy = sinon.spy(function () {
+        if (spy.callCount < 3) {
+          console.log(spy.callCount + ': error...');
+          throw new Error('example error');
         }
-      }
+        console.log(spy.callCount + ': no error!');
+        return Promise.resolve();
+      });
 
-      return startListenerAndPushMessage(handler)
-        .delay(1000)
-        .then(function () {
-          should(times).eql(1);
-        })
-        .delay(2000)
-        .then(function () {
-          should(times).eql(2);
-        });
+      startListenerAndPushMessage(spy, hardcodedDelay(200));
+
+      setTimeout(function () {
+        spy.calledThrice.should.be.eql(true);
+        done();
+      }, 1000);
     });
 
-    it('should test failure', function () {
+    it('a delay of -1 should send the message to the FAIL queue', function () {
       function handler() {
         throw new Error('this is an error');
       }
 
-      function delayFunction() {
-        return -1;
-      }
-
-      return startListenerAndPushMessage(handler, delayFunction)
-        .delay(1000)
+      return startListenerAndPushMessage(handler, hardcodedDelay(-1))
+        .delay(200)
         .then(function () {
-          return channel.checkQueue(TEST_QUEUE_NAME);
+          return Promise.all([
+            channel.checkQueue(TEST_QUEUE_NAME),
+            channel.checkQueue(FAILURE_QUEUE_NAME)
+          ]);
         })
         .then(function (ok) {
-          should(ok.messageCount).eql(0);
-        })
-        .then(function () {
-          return channel.checkQueue(FAILURE_QUEUE_NAME);
-        })
-        .then(function (ok) {
-          should(ok.messageCount).eql(1);
+          ok[0].messageCount.should.be.eql(0);
+          ok[1].messageCount.should.be.eql(1);
         });
     });
 
-    it('should test not specified failure queue', function () {
-      should(function () {
+    it('must pass an options object', function () {
+      /*jshint -W068 */ // disabled JSHINT warning: "Wrapping non-IIFE function literals in parens is unnecessary."
+      (function () {
         return new Retry();
-      }).throw(new Error('\'failureQueueName\' not specified.  See documentation.'));
+      }).should.throw();
     });
 
   });
