@@ -92,7 +92,6 @@
           throw new Error('example error');
         }
         console.log(spy.callCount + ': no error!');
-        return Promise.resolve();
       });
 
       startListenerAndPushMessage(spy, hardcodedDelay(200));
