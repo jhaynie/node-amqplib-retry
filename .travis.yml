@@ -1,6 +1,13 @@
 language: node_js
 node_js:
-  - "0.10"
+- '0.10'
 services:
-  - rabbitmq
-
+- rabbitmq
+deploy:
+  provider: npm
+  email: engineering@lanetix.com
+  api_key:
+    secure: h9n5TAuKn7N12i+JiRlG1qIx0aCmfZcFkWJ5dDor56JkF3xQbEFFqQdqYlMc37PzyhfQCGWNxnCI2B9WowqFAHrBRQYppZT1i7/+dtmtY8J9FIAIVBBbHT4dmml0I4ciDTv3pfnLiG542THkWO7i7tNnqR3vXx0IB9i0xa+Uhs4=
+  on:
+    repo: lanetix/node-amqplib-retry
+    branch: master
