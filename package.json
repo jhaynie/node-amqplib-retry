@@ -1,6 +1,6 @@
 {
   "name": "amqplib-retry",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Retry failed attempts to consume a message, with increasing delays between each attempt.",
   "author": "Lanetix <engineering@lanetix.com> (https://github.com/lanetix/)",
   "keywords": [
