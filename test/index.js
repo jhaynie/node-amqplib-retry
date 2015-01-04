@@ -8,7 +8,7 @@
   var Promise = require('bluebird'),
     sinon = require('sinon'),
     amqp = require('amqplib'),
-    Retry = require('../lib/index'),
+    retry = require('../lib/index'),
     config = require('../lib/config'),
     ENTRY_QUEUE_NAME = 'amqplib-retry.tests',
     DELAY_QUEUE_NAME = config.delayQueueName,
@@ -38,14 +38,14 @@
     function startListenerAndPushMessage(handler, delayFunction) {
       return Promise.resolve()
         .then(function () {
-          var retry = new Retry({
+          var retryHandler = retry({
             channel: channel,
             consumerQueue: ENTRY_QUEUE_NAME,
             failureQueue: FAILURE_QUEUE_NAME,
             handler: handler,
             delay: delayFunction ||  hardcodedDelay(-1)
           });
-          return channel.consume(ENTRY_QUEUE_NAME, retry, {consumerTag: CONSUMER_TAG});
+          return channel.consume(ENTRY_QUEUE_NAME, retryHandler, {consumerTag: CONSUMER_TAG});
         })
         .then(function () {
           return channel.sendToQueue(ENTRY_QUEUE_NAME, new Buffer('abc'));
@@ -188,7 +188,7 @@
     it('must pass an options object', function () {
       /*jshint -W068 */ // disabled JSHINT warning: "Wrapping non-IIFE function literals in parens is unnecessary."
       (function () {
-        return new Retry();
+        return retry();
       }).should.throw();
     });
 
