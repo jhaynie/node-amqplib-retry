@@ -172,16 +172,19 @@
     });
 
     it('should retry a failed message multiple times', function () {
-      var spy = sinon.spy(function () {
-        if (spy.callCount < 3) {
-          throw new Error('example error');
-        }
-      });
+      var msg,
+        spy = sinon.spy(function (obj) {
+          msg = obj;
+          if (spy.callCount < 3) {
+            throw new Error('example error');
+          }
+        });
 
       return startListenerAndPushMessage(spy, hardcodedDelay(200))
         .delay(1000) // enough time for at least four iterations
         .then(function () {
           spy.calledThrice.should.be.eql(true);
+          msg.content.toString().should.be.eql('abc');
         });
     });
 
