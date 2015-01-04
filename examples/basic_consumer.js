@@ -29,7 +29,12 @@
         console.log(msg);
       };
 
-      channel.consume(QUEUE_NAME, new Retry(channel, QUEUE_NAME, FAILURE_QUEUE_NAME, amqpHandler));
+      channel.consume(QUEUE_NAME, new Retry({
+        channel: channel,
+        consumerQueue: QUEUE_NAME,
+        failureQueue: FAILURE_QUEUE_NAME,
+        handler: amqpHandler
+      }));
 
       console.log('Example consumer started.');
     });

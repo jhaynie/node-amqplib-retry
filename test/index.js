@@ -10,11 +10,11 @@
     amqp = require('amqplib'),
     Retry = require('../lib/index'),
     config = require('../lib/config'),
-    ENTRY_QUEUE_NAME = 'amqplib-retry.test',
+    ENTRY_QUEUE_NAME = 'amqplib-retry.tests',
     DELAY_QUEUE_NAME = config.delayQueueName,
     READY_QUEUE_NAME = config.readyQueueName,
-    FAILURE_QUEUE_NAME = 'amqplib-retry.test.failure',
-    CONSUMER_TAG = 'amqplib-retry-tests';
+    FAILURE_QUEUE_NAME = 'amqplib-retry.tests.failure',
+    CONSUMER_TAG = 'amqplib-retry.tests';
 
   describe('amqplib-retry', function () {
 
@@ -38,7 +38,13 @@
     function startListenerAndPushMessage(handler, delayFunction) {
       return Promise.resolve()
         .then(function () {
-          var retry = new Retry(channel, ENTRY_QUEUE_NAME, FAILURE_QUEUE_NAME, handler, delayFunction ||  hardcodedDelay(-1));
+          var retry = new Retry({
+            channel: channel,
+            consumerQueue: ENTRY_QUEUE_NAME,
+            failureQueue: FAILURE_QUEUE_NAME,
+            handler: handler,
+            delay: delayFunction ||  hardcodedDelay(-1)
+          });
           return channel.consume(ENTRY_QUEUE_NAME, retry, {consumerTag: CONSUMER_TAG});
         })
         .then(function () {
