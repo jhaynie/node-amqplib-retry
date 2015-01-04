@@ -1,2 +1,2 @@
-# rabbitmq-retry
+# amqplib-retry
 

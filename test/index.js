@@ -10,13 +10,13 @@
     amqp = require('amqplib'),
     Retry = require('../lib/index'),
     config = require('../lib/config'),
-    ENTRY_QUEUE_NAME = 'rabbitmq-retry-test',
+    ENTRY_QUEUE_NAME = 'amqplib-retry.test',
     DELAY_QUEUE_NAME = config.delayQueueName,
     READY_QUEUE_NAME = config.readyQueueName,
-    FAILURE_QUEUE_NAME = 'rabbitmq-retry-test-failure',
-    CONSUMER_TAG = 'rabbitmq-retry-tests';
+    FAILURE_QUEUE_NAME = 'amqplib-retry.test.failure',
+    CONSUMER_TAG = 'amqplib-retry-tests';
 
-  describe('rabbitmq-retry', function () {
+  describe('amqplib-retry', function () {
 
     var channel;
 
