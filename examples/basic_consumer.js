@@ -2,12 +2,12 @@
   'use strict';
 
   var Promise = require('bluebird'),
-    amqp = require('amqplib'),
+    amqplib = require('amqplib'),
     retry = require('amqplib-retry'),
     CONSUMER_QUEUE = 'example-queue',
     FAILURE_QUEUE = 'example-queue.failure';
 
-  Promise.resolve(amqp.connect('amqp://localhost:5672'))
+  Promise.resolve(amqplib.connect('amqp://localhost:5672'))
     .then(function (conn) {
       return conn.createChannel();
     })
@@ -18,6 +18,7 @@
       ]);
     })
     .tap(function (channel) {
+
       var messageHandler = function (msg) {
         // no need to 'ack' or 'nack' messages
         // messages that generate an exception (or a rejected promise) will be retried
@@ -31,6 +32,7 @@
         handler: messageHandler
         //delay: function (attempts) { return 1000; /* milliseconds */ }
       }));
+
     });
 
 }());
