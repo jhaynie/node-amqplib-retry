@@ -20,10 +20,6 @@
     }
   ],
   "main": "./lib/index.js",
-  "engines": {
-    "node": ">=0.10",
-    "npm": "^2"
-  },
   "scripts": {
     "lint": "eslint --ignore-path .gitignore .",
     "test": "./bin/lint && ./bin/test"
