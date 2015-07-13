@@ -17,13 +17,13 @@ describe('amqplib-retry', function () {
 
   var channel;
 
-  function hardcodedDelay(delay) {
+  function hardcodedDelay (delay) {
     return function () {
       return delay;
     };
   }
 
-  function checkQueues() {
+  function checkQueues () {
     return BPromise.all([
       channel.checkQueue(ENTRY_QUEUE_NAME),
       channel.checkQueue(DELAY_QUEUE_NAME),
@@ -32,7 +32,7 @@ describe('amqplib-retry', function () {
     ]);
   }
 
-  function startListenerAndPushMessage(handler, delayFunction) {
+  function startListenerAndPushMessage (handler, delayFunction) {
     return BPromise.resolve()
       .then(function () {
         var retryHandler = retry({
@@ -98,7 +98,7 @@ describe('amqplib-retry', function () {
   });
 
   it('acks a successfully handled message', function () {
-    function success() {
+    function success () {
     }
 
     return startListenerAndPushMessage(success)
@@ -113,7 +113,7 @@ describe('amqplib-retry', function () {
   });
 
   it('acks a successfully handled message (delayed BPromise)', function () {
-    function delayedSuccess() {
+    function delayedSuccess () {
       return BPromise.resolve()
         .delay(250)
         .then(function () {
@@ -133,7 +133,7 @@ describe('amqplib-retry', function () {
   });
 
   it('a delay of -1 should send the message to the FAIL queue', function () {
-    function fail() {
+    function fail () {
       throw new Error('example error');
     }
 
@@ -149,7 +149,7 @@ describe('amqplib-retry', function () {
   });
 
   it('FAIL delivery works for delayed BPromise handlers', function () {
-    function delayedFail() {
+    function delayedFail () {
       return BPromise.resolve()
         .delay(200)
         .then(function () {

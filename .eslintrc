@@ -6,7 +6,6 @@
     "curly": 2,
     "dot-notation": 2,
     "eqeqeq": 2,
-    "global-strict": [2, "always"],
     "guard-for-in": 2,
     "new-cap": 2,
     "no-bitwise": 2,
@@ -34,10 +33,9 @@
     "nodeca/indent": [2, "spaces", 2],
     "quotes": [2, "single", "avoid-escape"],
     "semi": 2,
-    "space-after-keywords": [2, "always", {
-      "checkFunctionKeyword": true
-    }],
-    "strict": 2,
+    "space-after-keywords": [2, "always"],
+    "space-before-function-parentheses": [2, "always"],
+    "strict": [2, "global"],
     "wrap-iife": 2
   },
 
