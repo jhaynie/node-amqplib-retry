@@ -25,6 +25,7 @@
     "test-coveralls": "istanbul cover _mocha --report lcovonly -- -R spec && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
     "cover": "istanbul cover _mocha",
     "lint": "eslint src test",
+    "prepublish": "npm run compile",
     "test": "mocha && npm run lint"
   },
   "dependencies": {
