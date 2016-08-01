@@ -22,11 +22,11 @@
   "main": "./lib/index.js",
   "scripts": {
     "compile": "babel src --out-dir lib --source-maps --minified",
-    "test-coveralls": "istanbul cover _mocha --report lcovonly -- -R spec && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
-    "cover": "istanbul cover _mocha",
+    "test-coveralls": "istanbul cover _mocha --report lcovonly -- -t 10000 -R spec && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
+    "cover": "istanbul cover _mocha -- -t 10000",
     "lint": "eslint src test",
     "prepublish": "npm run compile",
-    "test": "mocha && npm run lint"
+    "test": "mocha -t 10000 && npm run lint"
   },
   "dependencies": {
     "amqplib": "^0.4",

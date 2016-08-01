@@ -16,24 +16,23 @@ describe('amqplib-retry', () => {
 
   const hardcodedDelay = (delay) => () => delay
 
-  const checkQueues = () => {
-    return Promise.all([
+  const checkQueues = () =>
+    Promise.all([
       channel.checkQueue(ENTRY_QUEUE_NAME),
       channel.checkQueue(DELAY_QUEUE_NAME),
       channel.checkQueue(READY_QUEUE_NAME),
       channel.checkQueue(FAILURE_QUEUE_NAME)
     ])
-  }
 
   const startListenerAndPushMessage = (handler, delayFunction) =>
     Promise
-      .try(function () {
+      .try(() => {
         const retryHandler = retry({
           channel: channel,
           consumerQueue: ENTRY_QUEUE_NAME,
           failureQueue: FAILURE_QUEUE_NAME,
           handler: handler,
-          delay: delayFunction || hardcodedDelay(-1)
+          delay: delayFunction
         })
         return channel.consume(ENTRY_QUEUE_NAME, retryHandler, { consumerTag: CONSUMER_TAG })
       })
@@ -57,20 +56,14 @@ describe('amqplib-retry', () => {
   )
 
   beforeEach(() =>
-    Promise
-      .resolve(channel)
-      .tap((ch) =>
-        Promise.all([
-          ch.purgeQueue(ENTRY_QUEUE_NAME),
-          ch.purgeQueue(FAILURE_QUEUE_NAME)
-        ])
-      )
+    Promise.all([
+      channel.purgeQueue(ENTRY_QUEUE_NAME),
+      channel.purgeQueue(FAILURE_QUEUE_NAME)
+    ])
   )
 
   afterEach(() =>
-    Promise
-      .resolve(channel)
-      .tap((ch) => Promise.all([ch.cancel(CONSUMER_TAG)]))
+    channel.cancel(CONSUMER_TAG)
   )
 
   after(() =>
@@ -85,11 +78,9 @@ describe('amqplib-retry', () => {
       .delay(500)
   )
 
-  it('acks a successfully handled message', () => {
-    const success = () => {
-    }
-
-    return startListenerAndPushMessage(success)
+  it('acks a successfully handled message', () =>
+    startListenerAndPushMessage(() => {
+    }, hardcodedDelay(-1))
       .delay(200)
       .then(checkQueues)
       .spread((entry, delay, ready, failed) => {
@@ -98,7 +89,7 @@ describe('amqplib-retry', () => {
         ready.messageCount.should.be.eql(0)
         failed.messageCount.should.be.eql(0)
       })
-  })
+  )
 
   it('acks a successfully handled message (delayed Promise)', () => {
     const delayedSuccess =
@@ -108,7 +99,7 @@ describe('amqplib-retry', () => {
           .then(() => {
           })
 
-    return startListenerAndPushMessage(delayedSuccess)
+    return startListenerAndPushMessage(delayedSuccess, hardcodedDelay(-1))
       .delay(400)
       .then(checkQueues)
       .spread((entry, delay, ready, failed) => {
@@ -124,7 +115,7 @@ describe('amqplib-retry', () => {
       throw new Error('example error')
     }
 
-    return startListenerAndPushMessage(fail)
+    return startListenerAndPushMessage(fail, hardcodedDelay(-1))
       .delay(200)
       .then(checkQueues)
       .spread((entry, delay, ready, failed) => {
@@ -135,16 +126,38 @@ describe('amqplib-retry', () => {
       })
   })
 
+  it('default delay should send the message to the FAIL queue', () => {
+    const fail = () => {
+      throw new Error('example error')
+    }
+
+    return startListenerAndPushMessage(fail)
+      .delay(3000)
+      .then(() => console.log(123))
+      .then(checkQueues)
+      .spread((entry, delay, ready, failed) => {
+        entry.messageCount.should.be.eql(0)
+        delay.messageCount.should.be.eql(1)
+        ready.messageCount.should.be.eql(0)
+        failed.messageCount.should.be.eql(0)
+      })
+      .finally(() =>
+        Promise.all([
+          channel.purgeQueue(DELAY_QUEUE_NAME),
+          channel.purgeQueue(READY_QUEUE_NAME)
+        ])
+      )
+  })
+
   it('FAIL delivery works for delayed Promise handlers', () => {
     const delayedFail = () =>
       Promise
-        .resolve()
         .delay(200)
         .then(() => {
           throw new Error('example error')
         })
 
-    return startListenerAndPushMessage(delayedFail)
+    return startListenerAndPushMessage(delayedFail, hardcodedDelay(-1))
       .delay(500)
       .then(checkQueues)
       .spread((entry, delay, ready, failed) => {
@@ -177,5 +190,51 @@ describe('amqplib-retry', () => {
     (() => {
       return retry()
     }).should.throw()
+  })
+
+  it('must pass channel', () => {
+    (() => {
+      return retry({
+        // channel: channel,
+        consumerQueue: ENTRY_QUEUE_NAME,
+        failureQueue: FAILURE_QUEUE_NAME,
+        handler: () => {
+        }
+      })
+    }).should.throw()
+  })
+
+  it('must pass consumerQueue', () => {
+    (() => {
+      return retry({
+        channel: channel,
+        // consumerQueue: ENTRY_QUEUE_NAME,
+        failureQueue: FAILURE_QUEUE_NAME,
+        handler: () => {
+        }
+      })
+    }).should.throw()
+  })
+
+  it('must pass handler', () => {
+    (() => {
+      return retry({
+        channel: channel,
+        consumerQueue: ENTRY_QUEUE_NAME,
+        failureQueue: FAILURE_QUEUE_NAME
+        // handler: () => {
+        // }
+      })
+    }).should.throw()
+  })
+
+  it('without failureQueue', () => {
+    return retry({
+      channel: channel,
+      consumerQueue: ENTRY_QUEUE_NAME,
+      // failureQueue: FAILURE_QUEUE_NAME,
+      handler: () => {
+      }
+    })
   })
 })
