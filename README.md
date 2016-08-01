@@ -55,11 +55,11 @@ Promise
 
 ## Parameters
 
-__channel__ (required): Amqplib channel. See: [connection.createChannel()](http://www.squaremobius.net/amqp.node/channel_api.html#model_createChannel) 
-__consumerQueue__ (required): Name of the queue that holds the amqp messages that need to be processed.
-__delay__ (optional): Delay in milliseconds between retries.  Default: `Math.pow(2, <# of attempts>)`
-__failureQueue__ (optional):  Name of the queue that holds the amqp messages that could not be processed in spite of the retries.  Default: `<consumerQueue>.failure` 
-__handler__ (required): Set up a consumer with a callback to be invoked with each message.
+__channel__ (required): Amqplib channel. See: [connection.createChannel()](http://www.squaremobius.net/amqp.node/channel_api.html#model_createChannel)  
+__consumerQueue__ (required): Name of the queue that holds the amqp messages that need to be processed.  
+__delay__ (optional): Delay in milliseconds between retries.  Default: `Math.pow(2, <# of attempts>)`  
+__failureQueue__ (optional):  Name of the queue that holds the amqp messages that could not be processed in spite of the retries.  Default: `<consumerQueue>.failure`  
+__handler__ (required): Set up a consumer with a callback to be invoked with each message.  
 
 ## License
 

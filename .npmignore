@@ -1,0 +1,5 @@
+npm-debug.log
+.npmrc
+coverage
+src
+test
