@@ -1,6 +1,6 @@
 {
   "name": "amqplib-retry",
-  "version": "1.1.2",
+  "version": "1.1.4",
   "description": "Retry failed attempts to consume a message, with increasing delays between each attempt.",
   "author": "Lanetix <engineering@lanetix.com> (https://github.com/lanetix/)",
   "keywords": [
@@ -21,19 +21,29 @@
   ],
   "main": "./lib/index.js",
   "scripts": {
-    "lint": "eslint --ignore-path .gitignore .",
-    "test": "./bin/lint && ./bin/test"
+    "compile": "babel src --out-dir lib --source-maps --minified",
+    "test-coveralls": "istanbul cover _mocha --report lcovonly -- -t 10000 -R spec && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
+    "cover": "istanbul cover _mocha -- -t 10000",
+    "lint": "eslint src test",
+    "prepublish": "npm run compile",
+    "test": "mocha -t 10000 && npm run lint"
   },
   "dependencies": {
-    "amqplib": "^0.3",
-    "bluebird": "^2",
+    "amqplib": "^0.4",
+    "bluebird": "^3",
     "underscore": "^1"
   },
   "devDependencies": {
-    "eslint": "^0.24",
-    "eslint-plugin-nodeca": "^1",
-    "mocha": "^1",
-    "should": "^4",
+    "babel-cli": "^6",
+    "babel-preset-es2015": "^6",
+    "coveralls": "^2",
+    "eslint": "^3",
+    "eslint-config-standard": "^5",
+    "eslint-plugin-promise": "^2",
+    "eslint-plugin-standard": "^2",
+    "istanbul": "^0.4",
+    "mocha": "^3",
+    "should": "^10",
     "sinon": "^1.12.2"
   }
 }
