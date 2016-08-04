@@ -45,5 +45,10 @@
     "mocha": "^3",
     "should": "^10",
     "sinon": "^1.12.2"
+  },
+  "babel": {
+    "presets": [
+      "es2015"
+    ]
   }
 }
