@@ -2,8 +2,9 @@ const config = require('./config')
 const Promise = require('bluebird')
 
 class ReadyQueueConsumer {
-  constructor (channel) {
+  constructor (channel, logger) {
     this.channel = channel
+    this.logger = logger || console
   }
 
   start () {
@@ -17,10 +18,10 @@ class ReadyQueueConsumer {
         })
         .then(() => self.channel.ack(msg))
         .catch((err) => {
-          console.error('Error: while trying to process message from ready queue.  err: ' + err + ', msg: ' + JSON.stringify(msg))
+          this.logger.error('Error: while trying to process message from ready queue. error: %s, msg: ', err, msg)
           self.channel.nack(msg)
         })
-    )
+    , {noAck: false})
   }
 }
 

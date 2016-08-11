@@ -3,3 +3,10 @@ npm-debug.log
 coverage
 src
 test
+.npmignore
+bin
+.eslintrc
+.nvmrc
+examples
+.travis.yml
+*.tgz

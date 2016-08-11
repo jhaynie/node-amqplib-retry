@@ -8,7 +8,7 @@ const config = require('../src/config')
 const ENTRY_QUEUE_NAME = 'amqplib-retry.tests'
 const DELAY_QUEUE_NAME = config.delayQueueName
 const READY_QUEUE_NAME = config.readyQueueName
-const FAILURE_QUEUE_NAME = 'amqplib-retry.tests.failure'
+const FAILURE_QUEUE_NAME = 'amqplib-retry.tests.retry'
 const CONSUMER_TAG = 'amqplib-retry.tests'
 
 describe('amqplib-retry', () => {

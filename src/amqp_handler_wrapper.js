@@ -1,4 +1,4 @@
-const _ = require('underscore')
+const _ = require('lodash')
 const Promise = require('bluebird')
 const config = require('./config')
 
@@ -12,7 +12,7 @@ const getDefaultDelay = (attempts) => {
   return delay * 1000
 }
 
-module.exports = function (channel, clientQueueName, failureQueueName, clientHandler, delayFunction, initializer) {
+module.exports = function (channel, clientQueueName, failureQueueName, clientHandler, delayFunction, initializer, logger, noack) {
   const errorHandler = (msg) => {
     if (!initializer.isInitialized) {
       // Delay in 1 MS to let the queues/exchange/bindings initialize
@@ -53,7 +53,7 @@ module.exports = function (channel, clientQueueName, failureQueueName, clientHan
       .catch((err) => {
         // Something went wrong. Let's handle this message.
         // Adding the string 'error' to support papertrail error filters.
-        console.error('Error: AMQP retry handler caught the following error: ', err)
+        (logger || console).error('Error: AMQP retry handler caught the following error: ', err)
         return Promise
           .try(() => errorHandler(msg))
           .catch((err) => {
@@ -66,9 +66,8 @@ module.exports = function (channel, clientQueueName, failureQueueName, clientHan
       .then(() =>
         // We ack it for the user. Either way if the message has been processed successfully or
         // not, the message should be out of the original queue, therefore - acked.
-        channel.ack(msg)
+        !noack && channel.ack(msg)
       )
 
   return handlerWrapper
 }
-

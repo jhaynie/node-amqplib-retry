@@ -16,13 +16,13 @@ module.exports = (options) => {
 
   // set defaults
   if (!options.failureQueue) {
-    options.failureQueue = options.consumerQueue + '.failure'
+    options.failureQueue = options.consumerQueue + '.retry'
   }
 
   // initializing the objects
-  const initializer = new Initializer(options.channel, options.consumerQueue, options.failureQueue)
-  const consumer = new ReadyQueueConsumer(options.channel)
-  const wrapper = amqpHandlerWrapper(options.channel, options.consumerQueue, options.failureQueue, options.handler, options.delay, initializer)
+  const initializer = new Initializer(options.channel, options.consumerQueue, options.failureQueue, options.logger)
+  const consumer = new ReadyQueueConsumer(options.channel, options.logger)
+  const wrapper = amqpHandlerWrapper(options.channel, options.consumerQueue, options.failureQueue, options.handler, options.delay, initializer, options.logger, options.noack)
 
   // initializing the queues, exchange and binding. Then starting the consumer
   initializer
